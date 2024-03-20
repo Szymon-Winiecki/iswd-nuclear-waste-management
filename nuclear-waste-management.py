@@ -21,7 +21,20 @@ def main():
 
     num_characteristic_points = 3
 
-    construct_LP_problem(data, criteria_direction, reference_ranking, num_characteristic_points)
+    problem, characteristic_thresholds, utility_variables =  construct_LP_problem(data, criteria_direction, reference_ranking, num_characteristic_points)
+
+    target_val, characteristic_values = solve(problem, utility_variables)
+
+    ranking = rank(data, characteristic_thresholds, characteristic_values)
+
+    ranking_str = ""
+    for i in range(len(ranking)):
+        ranking_str += f"{i:02d}. {ranking[i][0]} ({ranking[i][1]}) \n"
+
+    with open("results/ranking.txt", 'w') as file:
+        file.write(ranking_str)
+
+    plot_partial_utility(characteristic_thresholds, characteristic_values)
 
 
 def read_data(filename):
@@ -52,7 +65,7 @@ def construct_LP_problem(data, criteria_direction, reference_ranking, num_charac
         else:
             sys.exit(f"unknown direction: {criteria_direction[c]}")
 
-    prob = LpProblem("Maximize the epsilon", LpMaximize)
+    prob = LpProblem("Maximize_the_epsilon", LpMaximize)
 
     # create epislon variable
     epsilon = LpVariable("epsilon", lowBound=0, upBound=None)
@@ -74,10 +87,10 @@ def construct_LP_problem(data, criteria_direction, reference_ranking, num_charac
     # reference ranking
 
     def utility(c, x):
-        tu = 1
-        while x > utility_thresholds[c][tu]:
-            tu += 1
-        return utility_variables[c][tu - 1] + ( (x - utility_thresholds[c][tu - 1]) / (utility_thresholds[c][tu] - utility_thresholds[c][tu - 1]) ) * (utility_variables[c][tu] - utility_variables[c][tu - 1])
+        succ_theshold = 1
+        while x > utility_thresholds[c][succ_theshold]:
+            succ_theshold += 1
+        return utility_variables[c][succ_theshold - 1] + ( (x - utility_thresholds[c][succ_theshold - 1]) / (utility_thresholds[c][succ_theshold] - utility_thresholds[c][succ_theshold - 1]) ) * (utility_variables[c][succ_theshold] - utility_variables[c][succ_theshold - 1])
 
 
     for e in reference_ranking:
@@ -103,21 +116,51 @@ def construct_LP_problem(data, criteria_direction, reference_ranking, num_charac
             for i in range(1, len(utility_variables[c])):
                 prob += utility_variables[c][i-1] >= utility_variables[c][i]
 
-    prob.solve()
+    return prob, utility_thresholds, utility_variables
 
-    # partial utility functiosn visualization (tmp)
-    ws = []
-    for c in range(data.shape[1]):
-        ws.append([])
-        for i in range(num_characteristic_points):
-            ws[c].append(utility_variables[c][i].varValue)
+def solve(problem, utility_variables):
 
-    if not os.path.exists("plots"):
-        os.mkdir("plots")
-    for c in range(data.shape[1]):
+    problem.solve()
+
+    utility_variables_values = []
+    for c in range(len(utility_variables)):
+        utility_variables_values.append([])
+        for var in utility_variables[c]:
+            utility_variables_values[c].append(var.varValue)
+
+    optimised = value(problem.objective)
+
+    return optimised, utility_variables_values
+
+def rank(data, characteristic_thresholds, characteristic_values):
+    ranking = []
+    for i in range(data.shape[0]):
+        ranking.append((i, utility(data[i], characteristic_thresholds, characteristic_values)))
+
+    ranking.sort(key = lambda x : -x[1])
+
+    return ranking
+
+def partial_utility(x, characteristic_thresholds, characteristic_values):
+    succ_theshold = 1
+    while x > characteristic_thresholds[succ_theshold]:
+        succ_theshold += 1
+    return characteristic_values[succ_theshold - 1] + ( (x - characteristic_thresholds[succ_theshold - 1]) / (characteristic_thresholds[succ_theshold] - characteristic_thresholds[succ_theshold - 1]) ) * (characteristic_values[succ_theshold] - characteristic_values[succ_theshold - 1])
+
+def utility(variant, characteristic_thresholds, characteristic_values):
+    u = 0
+    for i in range(len(variant)):
+        u += partial_utility(variant[i], characteristic_thresholds[i],  characteristic_values[i])
+    return u
+
+def plot_partial_utility(characteristic_thresholds, characteristic_values, directory="results/plots"):
+
+    os.makedirs(directory, exist_ok=True)
+
+    for c in range(len(characteristic_thresholds)):
         plt.cla()
-        plt.plot(utility_thresholds[c], ws[c])
-        plt.savefig(f"plots/plot{c}.png")
+        plt.plot(characteristic_thresholds[c], characteristic_values[c])
+        plt.savefig(os.path.join(directory, f"U_{c}.png"))
             
 
 main()
