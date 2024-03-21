@@ -5,6 +5,7 @@ import os
 import os
 
 from UTA_Solver import UTA_Solver
+from UTA_GMS_Solver import UTA_GMS_Solver
 
 def main():
     data_file = 'Nuclear waste management.csv'
@@ -13,30 +14,41 @@ def main():
     criteria_direction = ['cost', 'cost', 'cost', 'cost']
 
     reference_ranking = [
-        (11, '>', 18),
-        (7,  '>', 21),
-        (16, '>', 3),
-        (13, '>', 26),
-        (2,  '>', 8)
+        [12, '<', 19],
+        [7,  '>', 21],
+        [4, '<', 7],
+        [13, '>', 23],
+        [20,  '>', 21]
     ]
 
-    num_characteristic_points = 3
+    # change to 0-based indexing 
+    for ref in reference_ranking:
+        ref[0] -= 1
+        ref[2] -= 1
 
-    solver =  UTA_Solver(data, criteria_direction, reference_ranking, num_characteristic_points)
+    # num_characteristic_points = 3
 
+    # solver =  UTA_Solver(data, criteria_direction, reference_ranking, num_characteristic_points)
+
+    # solver.solve()
+
+    # ranking = solver.rank()
+
+    # ranking_str = ""
+    # for i in range(len(ranking)):
+    #     ranking_str += f"{(i+1):02d}. {ranking[i][0]+1} ({ranking[i][1]}) \n"
+
+    # solver.plot_partial_utility()
+
+    # os.makedirs("results", exist_ok=True)
+    # with open("results/ranking.txt", 'w') as file:
+    #     file.write(ranking_str)
+
+    solver = UTA_GMS_Solver(data, criteria_direction, reference_ranking)
     solver.solve()
 
-    ranking = solver.rank()
+    solver.hasse_diagram()
 
-    ranking_str = ""
-    for i in range(len(ranking)):
-        ranking_str += f"{i:02d}. {ranking[i][0]} ({ranking[i][1]}) \n"
-
-    solver.plot_partial_utility()
-
-    os.makedirs("results", exist_ok=True)
-    with open("results/ranking.txt", 'w') as file:
-        file.write(ranking_str)
 
 
 def read_data(filename):

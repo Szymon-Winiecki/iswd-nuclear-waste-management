@@ -1,5 +1,4 @@
 import numpy as np
-import sys
 from pulp import *
 from matplotlib import pyplot as plt
 import os
@@ -76,7 +75,7 @@ class UTA_Solver:
                     self.problem += self.utility_variables[c][i-1] <= self.utility_variables[c][i]
             else:
                 for i in range(1, len(self.utility_variables[c])):
-                    self.problem += self.utility_variables[c][i-1] >=self. utility_variables[c][i]
+                    self.problem += self.utility_variables[c][i-1] >= self.utility_variables[c][i]
 
     def rank(self):
         ranking = []
