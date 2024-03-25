@@ -26,28 +26,28 @@ def main():
         ref[0] -= 1
         ref[2] -= 1
 
-    # num_characteristic_points = 3
+    num_characteristic_points = 7
 
-    # solver =  UTA_Solver(data, criteria_direction, reference_ranking, num_characteristic_points)
+    solver =  UTA_Solver(data, criteria_direction, reference_ranking, num_characteristic_points, utility_min_weight=0.1, utility_max_weight=0.5)
 
-    # solver.solve()
-
-    # ranking = solver.rank()
-
-    # ranking_str = ""
-    # for i in range(len(ranking)):
-    #     ranking_str += f"{(i+1):02d}. {ranking[i][0]+1} ({ranking[i][1]}) \n"
-
-    # solver.plot_partial_utility()
-
-    # os.makedirs("results", exist_ok=True)
-    # with open("results/ranking.txt", 'w') as file:
-    #     file.write(ranking_str)
-
-    solver = UTA_GMS_Solver(data, criteria_direction, reference_ranking)
     solver.solve()
 
-    solver.hasse_diagram()
+    ranking = solver.rank()
+
+    ranking_str = ""
+    for i in range(len(ranking)):
+        ranking_str += f"{(i+1):02d}. {ranking[i][0]+1} ({ranking[i][1]}) \n"
+
+    solver.plot_partial_utility()
+
+    os.makedirs("results", exist_ok=True)
+    with open("results/ranking.txt", 'w') as file:
+        file.write(ranking_str)
+
+    # solver = UTA_GMS_Solver(data, criteria_direction, reference_ranking)
+    # solver.solve()
+
+    # solver.hasse_diagram()
 
 
 

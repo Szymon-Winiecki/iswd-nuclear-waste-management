@@ -4,12 +4,14 @@ from matplotlib import pyplot as plt
 import os
 
 class UTA_Solver:
-    def __init__(self, data, criteria_direction, reference_ranking, num_characteristic_points):
+    def __init__(self, data, criteria_direction, reference_ranking, num_characteristic_points, utility_min_weight = 0.0, utility_max_weight = 1.0):
         self.data = data
         self.criteria_direction = criteria_direction
         self.reference_ranking = reference_ranking
         self.num_characteristic_points = num_characteristic_points
         self.num_criterion = self.data.shape[1]
+        self.utility_min_weight = utility_min_weight
+        self.utility_max_weight = utility_max_weight
 
 
     def solve(self):
@@ -62,11 +64,17 @@ class UTA_Solver:
             elif e[1] == "<":
                 self.problem += lpSum([utility(c, self.data[e[2], c]) for c in range(self.num_criterion)]) >= lpSum([utility(c, self.data[e[0], c]) for c in range(self.num_criterion)]) + epsilon
 
+
         # normalization
         best_indices = list(map(lambda d : -1 if d == 'gain' else 0, self.criteria_direction))
         worst_indices = list(map(lambda d : 0 if d == 'gain' else -1, self.criteria_direction))
         self.problem += (lpSum([self.utility_variables[c][best_indices[c]] for c in range(self.num_criterion)]) == 1, "upper_normalization")
         self.problem += (lpSum([self.utility_variables[c][worst_indices[c]] for c in range(self.num_criterion)]) == 0, "lower_normalization")
+
+        # min and max criteria weights
+        for c in range(self.num_criterion):
+            self.problem += self.utility_variables[c][best_indices[c]] >= self.utility_min_weight
+            self.problem += self.utility_variables[c][best_indices[c]] <= self.utility_max_weight
 
         # monotonicity
         for c in range(self.num_criterion):
