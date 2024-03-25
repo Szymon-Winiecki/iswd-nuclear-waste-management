@@ -112,5 +112,6 @@ class UTA_Solver:
 
         for c in range(len(self.characteristic_thresholds)):
             plt.cla()
-            plt.plot(self.characteristic_thresholds[c], self.characteristic_values[c])
+            plt.ylim(0.0, 1.0)
+            plt.plot(self.characteristic_thresholds[c], self.characteristic_values[c], marker="o")
             plt.savefig(os.path.join(directory, f"U_{c}.png"))
