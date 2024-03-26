@@ -121,23 +121,18 @@ class UTA_GMS_Solver:
         for a in range(self.necessary_relation.shape[0]):
             for b in range(self.necessary_relation.shape[1]):
                 if self.necessary_relation[a, b] == 1:
-                    if not G.has_node(a):
-                        G.add_node(a)
-                    if not G.has_node(b):
-                        G.add_node(b)
-                    G.add_edge(a, b)
+                    if not G.has_node(a+1):
+                        G.add_node(a+1)
+                    if not G.has_node(b+1):
+                        G.add_node(b+1)
+                    G.add_edge(a+1, b+1)
 
-        for a in range(self.necessary_relation.shape[0]):
-            for b in range(self.necessary_relation.shape[1]):
-                if G.has_edge(a, b):
-                    G.remove_edge(a, b)
-                    if not nx.has_path(G, a, b):
-                        G.add_edge(a, b)
+        edges = [e for e in G.edges]
+        for a, b in edges:
+            G.remove_edge(a, b)
+            if not nx.has_path(G, a, b):
+                G.add_edge(a, b)
         
         pos = nx.drawing.nx_pydot.graphviz_layout(G, prog="dot")
-        nx.draw(G, pos=pos, with_labels=True)   # TODO: label graph with 1-based nodes indexing
+        nx.draw(G, pos=pos, with_labels=True)
         plt.show()
-
-                    
-
-        pass
