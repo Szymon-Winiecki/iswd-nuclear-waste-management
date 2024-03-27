@@ -115,7 +115,7 @@ class UTA_GMS_Solver:
         return problem
 
 
-    def hasse_diagram(self):
+    def hasse_diagram(self, directory="results/plots_UTA_GMS/"):
         G = nx.DiGraph()
         
         for a in range(self.necessary_relation.shape[0]):
@@ -134,5 +134,8 @@ class UTA_GMS_Solver:
                 G.add_edge(a, b)
         
         pos = nx.drawing.nx_pydot.graphviz_layout(G, prog="dot")
+        plt.cla()
         nx.draw(G, pos=pos, with_labels=True)
-        plt.show()
+
+        os.makedirs(directory, exist_ok=True)
+        plt.savefig(os.path.join(directory, "hasse.png"))

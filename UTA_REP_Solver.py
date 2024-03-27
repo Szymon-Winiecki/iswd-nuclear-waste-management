@@ -3,15 +3,14 @@ from pulp import *
 from matplotlib import pyplot as plt
 import os
 
-class UTA_Solver:
-    def __init__(self, data, criteria_direction, reference_ranking, num_characteristic_points, utility_min_weight = 0.0, utility_max_weight = 1.0):
+class UTA_REP_Solver:
+    def __init__(self, data, criteria_direction, reference_ranking, necessary_relation):
         self.data = data
         self.criteria_direction = criteria_direction
         self.reference_ranking = reference_ranking
-        self.num_characteristic_points = num_characteristic_points
         self.num_criterion = self.data.shape[1]
-        self.utility_min_weight = utility_min_weight
-        self.utility_max_weight = utility_max_weight
+
+        self.necessary_relation = necessary_relation
 
 
     def solve(self):
@@ -26,12 +25,15 @@ class UTA_Solver:
             for var in self.utility_variables[c]:
                 self.characteristic_values[c].append(var.varValue)
 
+
     def construct_LP_problem(self):
 
-        self.problem = LpProblem("Maximize_the_epsilon", LpMaximize)
+        self.problem = LpProblem(f"find_representative_function", LpMaximize)
 
         # create epislon variable
         epsilon = LpVariable("epsilon", lowBound=0, upBound=None)
+
+        delta = LpVariable("delta", lowBound=0, upBound=None)
 
         # variables for partial utility functions
         self.utility_variables = []
@@ -39,21 +41,21 @@ class UTA_Solver:
         self.characteristic_thresholds = []
 
         for c in range(self.num_criterion):
-            self.utility_variables.append([])
-            for i in range(self.num_characteristic_points):
-                self.utility_variables[c].append(LpVariable(f"w_{c}_{i}", lowBound=0, upBound=None))
-            self.characteristic_thresholds.append(np.linspace(self.data[:,c].min(), self.data[:,c].max(), self.num_characteristic_points))
+            self.characteristic_thresholds.append(np.unique(self.data[:, c]))
+            self.utility_variables.append([LpVariable(f"w_{c}_{i}", lowBound=0, upBound=None) for i in range(len(self.characteristic_thresholds[c]))])
+
+        M = 1000
 
         # objective function
-        self.problem += epsilon, "Profit"
+        self.problem += M * epsilon - delta, "Profit"
 
         # reference ranking
 
         def utility(c, x):
-            succ_theshold = 1
-            while x > self.characteristic_thresholds[c][succ_theshold]:
-                succ_theshold += 1
-            return self.utility_variables[c][succ_theshold - 1] + ( (x - self.characteristic_thresholds[c][succ_theshold - 1]) / (self.characteristic_thresholds[c][succ_theshold] - self.characteristic_thresholds[c][succ_theshold - 1]) ) * (self.utility_variables[c][succ_theshold] - self.utility_variables[c][succ_theshold - 1])
+            threshold = 0
+            while x != self.characteristic_thresholds[c][threshold]:
+                threshold += 1
+            return self.utility_variables[c][threshold]
 
 
         for e in self.reference_ranking:
@@ -64,17 +66,11 @@ class UTA_Solver:
             elif e[1] == "<":
                 self.problem += lpSum([utility(c, self.data[e[2], c]) for c in range(self.num_criterion)]) >= lpSum([utility(c, self.data[e[0], c]) for c in range(self.num_criterion)]) + epsilon
 
-
         # normalization
         best_indices = list(map(lambda d : -1 if d == 'gain' else 0, self.criteria_direction))
         worst_indices = list(map(lambda d : 0 if d == 'gain' else -1, self.criteria_direction))
         self.problem += (lpSum([self.utility_variables[c][best_indices[c]] for c in range(self.num_criterion)]) == 1, "upper_normalization")
         self.problem += (lpSum([self.utility_variables[c][worst_indices[c]] for c in range(self.num_criterion)]) == 0, "lower_normalization")
-
-        # min and max criteria weights
-        for c in range(self.num_criterion):
-            self.problem += self.utility_variables[c][best_indices[c]] >= self.utility_min_weight
-            self.problem += self.utility_variables[c][best_indices[c]] <= self.utility_max_weight
 
         # monotonicity
         for c in range(self.num_criterion):
@@ -84,6 +80,18 @@ class UTA_Solver:
             else:
                 for i in range(1, len(self.utility_variables[c])):
                     self.problem += self.utility_variables[c][i-1] >= self.utility_variables[c][i]
+
+        # rep
+        for a in range(self.necessary_relation.shape[0]):
+            for b in range(a):
+                if self.necessary_relation[a, b] == 1:
+                    self.problem += lpSum([utility(c, self.data[a, c]) for c in range(self.num_criterion)]) >= lpSum([utility(c, self.data[b, c]) for c in range(self.num_criterion)]) + epsilon
+                elif self.necessary_relation[b, a] == 1:
+                    self.problem += lpSum([utility(c, self.data[b, c]) for c in range(self.num_criterion)]) >= lpSum([utility(c, self.data[a, c]) for c in range(self.num_criterion)]) + epsilon
+                else:
+                    self.problem += lpSum([utility(c, self.data[a, c]) for c in range(self.num_criterion)]) - lpSum([utility(c, self.data[b, c]) for c in range(self.num_criterion)]) <= delta
+                    self.problem += lpSum([utility(c, self.data[b, c]) for c in range(self.num_criterion)]) - lpSum([utility(c, self.data[a, c]) for c in range(self.num_criterion)]) <= delta
+
 
     def rank(self):
         ranking = []
@@ -95,10 +103,10 @@ class UTA_Solver:
         return ranking
 
     def partial_utility(self, x, characteristic_thresholds, characteristic_values):
-        succ_theshold = 1
-        while x > characteristic_thresholds[succ_theshold]:
-            succ_theshold += 1
-        return characteristic_values[succ_theshold - 1] + ( (x - characteristic_thresholds[succ_theshold - 1]) / (characteristic_thresholds[succ_theshold] - characteristic_thresholds[succ_theshold - 1]) ) * (characteristic_values[succ_theshold] - characteristic_values[succ_theshold - 1])
+        threshold = 0
+        while x != characteristic_thresholds[threshold]:
+            threshold += 1
+        return characteristic_values[threshold]
 
     def utility(self, variant):
         u = 0
@@ -106,7 +114,7 @@ class UTA_Solver:
             u += self.partial_utility(variant[i], self.characteristic_thresholds[i],  self.characteristic_values[i])
         return u
 
-    def plot_partial_utility(self, directory="results/plots_UTA"):
+    def plot_partial_utility(self, directory="results/plots_UTA_REP"):
 
         os.makedirs(directory, exist_ok=True)
 

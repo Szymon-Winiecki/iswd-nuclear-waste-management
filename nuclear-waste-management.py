@@ -6,8 +6,11 @@ import os
 
 from UTA_Solver import UTA_Solver
 from UTA_GMS_Solver import UTA_GMS_Solver
+from UTA_REP_Solver import UTA_REP_Solver
 
 def main():
+    os.makedirs("results", exist_ok=True)
+
     data_file = 'Nuclear waste management.csv'
     data = read_data(data_file)
 
@@ -27,29 +30,36 @@ def main():
         ref[0] -= 1
         ref[2] -= 1
 
-    # num_characteristic_points = 7
+    # UTA
 
-    # solver =  UTA_Solver(data, criteria_direction, reference_ranking, num_characteristic_points, utility_min_weight=0.1, utility_max_weight=0.5)
+    num_characteristic_points = 4
 
-    # solver.solve()
+    solver_UTA =  UTA_Solver(data, criteria_direction, reference_ranking, num_characteristic_points, utility_min_weight=0.1, utility_max_weight=0.5)
 
-    # ranking = solver.rank()
+    solver_UTA.solve()
 
-    # ranking_str = ""
-    # for i in range(len(ranking)):
-    #     ranking_str += f"{(i+1):02d}. {ranking[i][0]+1} ({ranking[i][1]}) \n"
+    ranking = solver_UTA.rank()
 
-    # solver.plot_partial_utility()
+    save_ranking(ranking, "ranking_UTA.txt")
 
-    # os.makedirs("results", exist_ok=True)
-    # with open("results/ranking.txt", 'w') as file:
-    #     file.write(ranking_str)
+    solver_UTA.plot_partial_utility()
 
-    solver = UTA_GMS_Solver(data, criteria_direction, reference_ranking)
-    solver.solve()
+    # UTA GMS
 
-    solver.hasse_diagram()
+    solver_UTA_GMS = UTA_GMS_Solver(data, criteria_direction, reference_ranking)
+    solver_UTA_GMS.solve()
 
+    solver_UTA_GMS.hasse_diagram()
+
+    # Representative utility function
+
+    solver_UTA_REP = UTA_REP_Solver(data, criteria_direction, reference_ranking, solver_UTA_GMS.necessary_relation)
+    solver_UTA_REP.solve()
+    solver_UTA_REP.plot_partial_utility()
+
+    ranking = solver_UTA_REP.rank()
+
+    save_ranking(ranking, "ranking_UTA_REP.txt")
 
 
 def read_data(filename):
@@ -66,7 +76,14 @@ def read_data(filename):
 
     return np.array(data, dtype=float)
 
+def save_ranking(ranking, filename, directory="results"):
+    ranking_str = ""
+    for i in range(len(ranking)):
+        ranking_str += f"{(i+1):02d}. {ranking[i][0]+1} ({ranking[i][1]}) \n"
 
+    os.makedirs(directory, exist_ok=True)
+    with open(os.path.join(directory, filename), 'w') as file:
+        file.write(ranking_str)
             
 
 main()
