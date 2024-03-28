@@ -25,6 +25,8 @@ class UTA_REP_Solver:
             for var in self.utility_variables[c]:
                 self.characteristic_values[c].append(var.varValue)
 
+        return value(self.problem.objective)
+
 
     def construct_LP_problem(self):
 

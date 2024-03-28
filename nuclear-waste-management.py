@@ -35,7 +35,7 @@ def main():
 
     solver_UTA =  UTA_Solver(data, criteria_direction, reference_ranking, num_characteristic_points, utility_min_weight=0.1, utility_max_weight=0.5)
 
-    solver_UTA.solve()
+    epsilon_UTA = solver_UTA.solve()
 
     ranking = solver_UTA.rank()
 
@@ -53,12 +53,16 @@ def main():
     # Representative utility function
 
     solver_UTA_REP = UTA_REP_Solver(data, criteria_direction, reference_ranking, solver_UTA_GMS.necessary_relation)
-    solver_UTA_REP.solve()
+    epsilon_UTA_REP = solver_UTA_REP.solve()
     solver_UTA_REP.plot_partial_utility()
 
     ranking = solver_UTA_REP.rank()
 
     save_ranking(ranking, "ranking_UTA_REP.txt")
+
+    with open(os.path.join("results", "epsilon.txt"), 'w') as file:
+        file.write(f"UTA: {epsilon_UTA}\n")
+        file.write(f"UTA REP: {epsilon_UTA_REP}\n")
 
 
 def read_data(filename):

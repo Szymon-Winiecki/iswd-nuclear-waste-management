@@ -26,6 +26,8 @@ class UTA_Solver:
             for var in self.utility_variables[c]:
                 self.characteristic_values[c].append(var.varValue)
 
+        return value(self.problem.objective)
+
     def construct_LP_problem(self):
 
         self.problem = LpProblem("Maximize_the_epsilon", LpMaximize)
