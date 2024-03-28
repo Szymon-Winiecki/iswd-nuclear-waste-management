@@ -40,7 +40,7 @@ class UTA_GMS_Solver:
         problem = LpProblem(f"{relation_type}_relation_{a}>{b}_checking", LpMaximize)
 
         # create epislon variable
-        epsilon = LpVariable("epsilon", lowBound=0, upBound=None)
+        epsilon = LpVariable("epsilon")
 
         # variables for partial utility functions
         utility_variables = []

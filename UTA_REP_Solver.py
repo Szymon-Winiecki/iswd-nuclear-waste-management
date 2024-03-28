@@ -117,9 +117,15 @@ class UTA_REP_Solver:
     def plot_partial_utility(self, directory="results/plots_UTA_REP"):
 
         os.makedirs(directory, exist_ok=True)
+        plt.style.use('default')
+        plt.clf()
+        plt.rcParams.update({'font.size': 14})
 
         for c in range(len(self.characteristic_thresholds)):
             plt.cla()
             plt.ylim(0.0, 1.0)
+            plt.title("$\mathregular{U_" + str(c+1) + "}$")
+            plt.xlabel("$\mathregular{g_" + str(c+1) + "(a)}$")
+            plt.ylabel("$\mathregular{U_" + str(c+1) + "(a)}$")
             plt.plot(self.characteristic_thresholds[c], self.characteristic_values[c], marker="o")
-            plt.savefig(os.path.join(directory, f"U_{c}.png"))
+            plt.savefig(os.path.join(directory, f"U_{c+1}.png"), dpi=300, bbox_inches='tight')

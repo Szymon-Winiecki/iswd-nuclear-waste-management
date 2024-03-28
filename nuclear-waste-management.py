@@ -77,8 +77,11 @@ def read_data(filename):
 
 def save_ranking(ranking, filename, directory="results"):
     ranking_str = ""
+    pos = 1
     for i in range(len(ranking)):
-        ranking_str += f"{(i+1):02d}. {ranking[i][0]+1} ({ranking[i][1]}) \n"
+        ranking_str += f"{(pos)}.\t{ranking[i][0]+1}\t{ranking[i][1]} \n"
+        if i < len(ranking) - 1 and ranking[i][1] != ranking[i+1][1]:
+            pos += 1
 
     os.makedirs(directory, exist_ok=True)
     with open(os.path.join(directory, filename), 'w') as file:
